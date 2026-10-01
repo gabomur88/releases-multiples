@@ -71,3 +71,25 @@ jobs:
           done
 
           curl -fsS http://localhost:8082/consume-a
+
+
+                # 8. Arrancar Modulo C en segundo plano
+      - name: Arrancar Modulo C
+        run: |
+          nohup java -jar moduloc/target/moduloc-0.0.1-SNAPSHOT.jar > moduloc.log 2>&1 &
+
+      # 9. Comprobar integracion completa C -> B -> A
+      - name: Probar integracion C con B y A
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8083/cintegracion; then
+              echo ""
+              echo "Integracion C -> B -> A funcionando"
+              break
+            fi
+
+            echo "Esperando Modulo C..."
+            sleep 2
+          done
+
+          curl -fsS http://localhost:8083/cintegracion
