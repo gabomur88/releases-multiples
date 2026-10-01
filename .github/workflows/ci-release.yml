@@ -49,3 +49,24 @@ jobs:
           done
 
           curl -fs http://localhost:8081/saludo
+
+      # 6. Arrancar Modulo B en segundo plano
+      - name: Arrancar Modulo B
+        run: |
+          nohup java -jar modulob/target/modulob-0.0.1-SNAPSHOT.jar > modulob.log 2>&1 &
+
+      # 7. Esperar Modulo B y comprobar integracion B -> A
+      - name: Probar integracion B con A
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://localhost:8082/consume-a; then
+              echo ""
+              echo "Modulo B esta disponible y pudo consumir Modulo A"
+              break
+            fi
+
+            echo "Esperando Modulo B..."
+            sleep 2
+          done
+
+          curl -fs http://localhost:8082/consume-a
