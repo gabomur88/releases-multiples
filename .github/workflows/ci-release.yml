@@ -13,14 +13,39 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # 1. Descargar el codigo del repositorio
       - name: Descargar repositorio
         uses: actions/checkout@v6
 
+      # 2. Configurar Java
       - name: Configurar Java 25
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
+          cache: maven
 
+      # 3. Compilar los 3 modulos y ejecutar sus tests
       - name: Compilar y ejecutar tests
-        run: mvn clean test
+        run: mvn clean package
+
+      # 4. Arrancar Modulo A en segundo plano
+      - name: Arrancar Modulo A
+        run: |
+          nohup java -jar moduloa/target/moduloa-0.0.1-SNAPSHOT.jar > moduloa.log 2>&1 &
+
+      # 5. Esperar hasta que Modulo A este disponible
+      - name: Esperar Modulo A
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://localhost:8081/saludo; then
+              echo ""
+              echo "Modulo A esta disponible"
+              break
+            fi
+
+            echo "Esperando Modulo A..."
+            sleep 2
+          done
+
+          curl -fs http://localhost:8081/saludo
