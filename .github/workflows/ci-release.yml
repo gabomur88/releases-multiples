@@ -1,53 +1,26 @@
-name: CI CD con Release
+name: CI Multi Modulo
 
 on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
-
-# Permite que GitHub Actions cree un Release
-# y suba archivos al repositorio.
-permissions:
-  contents: write
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build-test-release:
+  build-test:
     runs-on: ubuntu-24.04
 
     steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v6
 
-      # 1. Descarga el código del repositorio
-      # dentro del runner de GitHub Actions.
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # 2. Instala Java 25 en el runner.
-      - name: Configurar JDK 25
-        uses: actions/setup-java@v4
+      - name: Configurar Java 25
+        uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '25'
 
-      # 3. Maven lee el pom.xml padre.
-      # Compila y prueba moduloa, modulob y moduloc.
-      - name: Compilar proyecto con tests
-        run: mvn clean verify
-
-      # 4. Este paso SOLO ocurre cuando hacemos push
-      # de un tag que comienza con "v", por ejemplo v1.0.0.
-      - name: Crear Release y subir los JAR
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-
-          # Los tres ejecutables que queremos meter
-          # dentro del mismo GitHub Release.
-          files: |
-            moduloa/target/moduloa-0.0.1-SNAPSHOT.jar
-            modulob/target/modulob-0.0.1-SNAPSHOT.jar
-            moduloc/target/moduloc-0.0.1-SNAPSHOT.jar
-
-          # GitHub genera automáticamente las notas del Release.
-          generate_release_notes: true
+      - name: Compilar y ejecutar tests
+        run: mvn clean test
