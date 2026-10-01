@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      # 1. Descargar el codigo del repositorio
+
+      # 1. Descargar el repositorio
       - name: Descargar repositorio
         uses: actions/checkout@v6
 
@@ -22,10 +23,10 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: "25"
           cache: maven
 
-      # 3. Compilar los 3 modulos y ejecutar sus tests
+      # 3. Compilar todos los modulos y ejecutar tests
       - name: Compilar y ejecutar tests
         run: mvn clean package
 
@@ -34,11 +35,11 @@ jobs:
         run: |
           nohup java -jar moduloa/target/moduloa-0.0.1-SNAPSHOT.jar > moduloa.log 2>&1 &
 
-      # 5. Esperar hasta que Modulo A este disponible
+      # 5. Esperar hasta que Modulo A responda
       - name: Esperar Modulo A
         run: |
           for i in {1..30}; do
-            if curl -fs http://localhost:8081/saludo; then
+            if curl -fsS http://localhost:8081/saludo; then
               echo ""
               echo "Modulo A esta disponible"
               break
@@ -48,7 +49,7 @@ jobs:
             sleep 2
           done
 
-          curl -fs http://localhost:8081/saludo
+          curl -fsS http://localhost:8081/saludo
 
       # 6. Arrancar Modulo B en segundo plano
       - name: Arrancar Modulo B
@@ -59,7 +60,7 @@ jobs:
       - name: Probar integracion B con A
         run: |
           for i in {1..30}; do
-            if curl -fs http://localhost:8082/consume-a; then
+            if curl -fsS http://localhost:8082/consume-a; then
               echo ""
               echo "Modulo B esta disponible y pudo consumir Modulo A"
               break
@@ -69,4 +70,4 @@ jobs:
             sleep 2
           done
 
-          curl -fs http://localhost:8082/consume-a
+          curl -fsS http://localhost:8082/consume-a
