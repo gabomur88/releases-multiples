@@ -130,6 +130,9 @@ jobs:
       contents: write
 
     steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v6
+
       - name: Descargar JARs
         uses: actions/download-artifact@v4
         with:
