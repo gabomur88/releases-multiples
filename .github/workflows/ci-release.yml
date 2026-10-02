@@ -11,16 +11,12 @@ on:
       - main
 
 jobs:
-
-  # =========================================================
-  # JOB 1: COMPILAR, TESTEAR Y PROBAR INTEGRACION A -> B -> C
-  # =========================================================
   build-test:
     runs-on: ubuntu-24.04
 
     steps:
 
-      # 1. Descargar repositorio
+      # 1. Descargar el repositorio
       - name: Descargar repositorio
         uses: actions/checkout@v6
 
@@ -36,16 +32,16 @@ jobs:
       - name: Compilar y ejecutar tests
         run: mvn clean package
 
-      # 4. Arrancar Modulo A
+      # 4. Arrancar Modulo A en segundo plano
       - name: Arrancar Modulo A
         run: |
           nohup java -jar moduloa/target/moduloa-0.0.1-SNAPSHOT.jar > moduloa.log 2>&1 &
 
-      # 5. Esperar Modulo A
+      # 5. Esperar hasta que Modulo A responda
       - name: Esperar Modulo A
         run: |
           for i in {1..30}; do
-            if curl -fSs http://localhost:8081/saludo; then
+            if curl -fsS http://localhost:8081/saludo; then
               echo ""
               echo "Modulo A esta disponible"
               break
@@ -55,18 +51,18 @@ jobs:
             sleep 2
           done
 
-          curl -fSs http://localhost:8081/saludo
+          curl -fsS http://localhost:8081/saludo
 
-      # 6. Arrancar Modulo B
+      # 6. Arrancar Modulo B en segundo plano
       - name: Arrancar Modulo B
         run: |
           nohup java -jar modulob/target/modulob-0.0.1-SNAPSHOT.jar > modulob.log 2>&1 &
 
-      # 7. Probar integracion B -> A
+      # 7. Esperar Modulo B y comprobar integracion B -> A
       - name: Probar integracion B con A
         run: |
           for i in {1..30}; do
-            if curl -fSs http://localhost:8082/consume-a; then
+            if curl -fsS http://localhost:8082/consume-a; then
               echo ""
               echo "Modulo B esta disponible y pudo consumir Modulo A"
               break
@@ -76,18 +72,19 @@ jobs:
             sleep 2
           done
 
-          curl -fSs http://localhost:8082/consume-a
+          curl -fsS http://localhost:8082/consume-a
 
-      # 8. Arrancar Modulo C
+
+                # 8. Arrancar Modulo C en segundo plano
       - name: Arrancar Modulo C
         run: |
           nohup java -jar moduloc/target/moduloc-0.0.1-SNAPSHOT.jar > moduloc.log 2>&1 &
 
-      # 9. Probar integracion C -> B -> A
+      # 9. Comprobar integracion completa C -> B -> A
       - name: Probar integracion C con B y A
         run: |
           for i in {1..30}; do
-            if curl -fSs http://localhost:8083/cintegracion; then
+            if curl -fsS http://localhost:8083/cintegracion; then
               echo ""
               echo "Integracion C -> B -> A funcionando"
               break
@@ -97,9 +94,10 @@ jobs:
             sleep 2
           done
 
-          curl -fSs http://localhost:8083/cintegracion
+          curl -fsS http://localhost:8083/cintegracion
 
-      # 10. Guardar los JAR como artifact
+
+                # 10. Guardar los JAR generados como artifact
       - name: Guardar JARs como artifact
         uses: actions/upload-artifact@v4
         with:
@@ -109,56 +107,43 @@ jobs:
             modulob/target/*.jar
             moduloc/target/*.jar
 
-
-  # =========================================================
-  # JOB 2: DESCARGAR Y VERIFICAR EL ARTIFACT
-  # =========================================================
   verificar-artifact:
     needs: build-test
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
+    - name: Descargar JARs
+      uses: actions/download-artifact@v4
+      with:
+        name: springboot-modulos
+        path: ./ejecutables
 
-      - name: Descargar JARs
-        uses: actions/download-artifact@v4
-        with:
-          name: springboot-modulos
-          path: ./ejecutables
+    - name: Mostrar JARs descargados
+      run: find ./ejecutables -type f -name "*.jar"
 
-      - name: Mostrar JARs descargados
-        run: find ./ejecutables -type f -name "*.jar"
-
-
-  # =========================================================
-  # JOB 3: CREAR RELEASE SOLO CUANDO HAYA TAG v*
-  # =========================================================
   release:
-    needs:
-      - build-test
-      - verificar-artifact
-
+    needs: build-test
     if: startsWith(github.ref, 'refs/tags/v')
-
     runs-on: ubuntu-24.04
 
     permissions:
       contents: write
 
     steps:
-
-      # Recuperar exactamente los JAR producidos por build-test
       - name: Descargar JARs
         uses: actions/download-artifact@v4
         with:
           name: springboot-modulos
           path: ./ejecutables
 
-      # Crear Release y adjuntar los tres JAR
       - name: Crear GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
+        run: |         
+
           gh release create "${{ github.ref_name }}" \
-            ./ejecutables/**/*.jar \
+            ./ejecutables/moduloa/target/*.jar \
+            ./ejecutables/modulob/target/*.jar \
+            ./ejecutables/moduloc/target/*.jar \
             --title "Release ${{ github.ref_name }}" \
             --generate-notes
