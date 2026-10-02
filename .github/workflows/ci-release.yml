@@ -104,3 +104,17 @@ jobs:
             moduloa/target/*.jar
             modulob/target/*.jar
             moduloc/target/*.jar
+
+  verificar-artifact:
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar JARs
+      uses: actions/download-artifact@v4
+      with:
+        name: springboot-modulos
+        path: ./ejecutables
+
+    - name: Mostrar JARs descargados
+      run: find ./ejecutables -type f -name "*.jar"
