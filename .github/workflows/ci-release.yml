@@ -93,3 +93,14 @@ jobs:
           done
 
           curl -fsS http://localhost:8083/cintegracion
+
+
+                # 10. Guardar los JAR generados como artifact
+      - name: Guardar JARs como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: springboot-modulos
+          path: |
+            moduloa/target/*.jar
+            modulob/target/*.jar
+            moduloc/target/*.jar
